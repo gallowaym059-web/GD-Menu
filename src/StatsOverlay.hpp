@@ -1,13 +1,6 @@
 #pragma once
 #include "Fps.hpp"
 
-// SceneManager is not pulled in by Geode.hpp; its header location differs between SDK versions.
-#if __has_include(<Geode/ui/SceneManager.hpp>)
-#include <Geode/ui/SceneManager.hpp>
-#elif __has_include(<Geode/utils/SceneManager.hpp>)
-#include <Geode/utils/SceneManager.hpp>
-#endif
-
 namespace mm {
 
 inline int countNodes(CCNode* n) {
@@ -50,7 +43,6 @@ protected:
         m_graph = CCDrawNode::create();
         this->addChild(m_graph, 1);
         this->reload();
-        this->scheduleUpdate();
         return true;
     }
 
@@ -213,8 +205,10 @@ protected:
         this->setPosition({x, y});
     }
 
-    void update(float dt) override {
-        if (dt <= 0.f) return;
+public:
+    // Driven by the ticker below (not scheduleUpdate), so scene cleanup can't stop it.
+    void step(float dt) {
+        if (dt <= 0.f || dt > 1.f) return;
         m_session += dt;
         ++m_frames;
         if (!m_c.enable) return;
@@ -224,6 +218,15 @@ protected:
         m_ema = m_ema == 0.f ? dt : m_ema * 0.9f + dt * 0.1f;
         m_acc += dt;
         if (m_acc >= refreshInterval()) { m_acc = 0.f; refresh(); }
+    }
+
+protected:
+    // Keeps the overlay parented to whatever scene is currently running.
+    void attach() {
+        auto scene = CCDirector::get()->getRunningScene();
+        if (!scene || this->getParent() == scene) return;
+        this->removeFromParentAndCleanup(false);
+        scene->addChild(this, 100000);
     }
 
 public:
@@ -239,7 +242,18 @@ public:
             s_inst = create();
             if (s_inst) {
                 s_inst->retain(); // we own one reference for the lifetime of the game
-                SceneManager::get()->keepAcrossScenes(s_inst);
+                // Scheduler-owned ticker: steps stats every frame and re-attaches the
+                // overlay to each new scene (no SceneManager dependency).
+                struct Ticker : CCObject {
+                    void tick(float dt) {
+                        if (!s_inst) return;
+                        s_inst->attach();
+                        s_inst->step(dt);
+                    }
+                };
+                auto t = new Ticker(); // intentionally never released
+                CCDirector::get()->getScheduler()->scheduleSelector(
+                    schedule_selector(Ticker::tick), t, 0.f, false);
             }
         }
         return s_inst;
