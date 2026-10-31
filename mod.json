@@ -1,8 +1,7 @@
 {
   "geode": "5.11.2",
   "gd": {
-    "android32": "2.2091",
-    "android64": "2.2091"
+    "android": "2.2081"
   },
   "version": "v2.2091.1-beta",
   "id": "codenan.mobilemenu",
