@@ -1,34 +1,38 @@
-// Mobile Window Menu: touch-first, draggable category windows for Geode (Android32 + Android64).
+// Mobile Window Menu: touch-first, draggable category windows for Geode (Android).
 // File map: Settings.hpp (feature registry/persistence), Fps.hpp, StatsOverlay.hpp,
-// Actions.hpp (what each control does), MenuWindow.hpp, ModMenuLayer.hpp.
+// Actions.hpp (what each control does), MenuWindow.hpp, ModMenuLayer.hpp, FloatButton.hpp.
+//
+// This mod installs NO hooks. A tiny pump re-queues itself on Geode's main-thread queue
+// every frame and drives everything from cocos2d-x nodes, so it depends on neither
+// Geometry Dash addresses nor on hooking any game or cocos function.
 #include <Geode/Geode.hpp>
-#include <Geode/modify/MenuLayer.hpp>
+#include <chrono>
 
-#include "ModMenuLayer.hpp"
+#include "FloatButton.hpp"
 
 using namespace geode::prelude;
 
-class $modify(MobileMenuHook, MenuLayer) {
-    bool init() {
-        if (!MenuLayer::init()) return false;
-
-        // Restore saved display state at startup.
-        if (mm::bval("fps-startup")) mm::applyFps();
-        else if (auto d = CCDirector::get()) d->setDisplayStats(mm::bval("show-fps"));
-        mm::StatsOverlay::ensure();
-
-        auto spr = ButtonSprite::create("Menu", "bigFont.fnt", "GJ_button_01.png", 0.6f);
-        auto btn = CCMenuItemSpriteExtra::create(
-            spr, this, menu_selector(MobileMenuHook::onOpenModMenu));
-        btn->setID("open-mobile-menu"_spr);
-        btn->setScale(mm::fval("open-btn-scale") / 0.6f);
-
-        if (auto bottom = this->getChildByID("bottom-menu")) {
-            bottom->addChild(btn);
-            bottom->updateLayout();
-        }
-        return true;
+namespace {
+    // Geode has exposed queueInMainThread both as a Loader method and as a free function.
+    template <class F>
+    void queueMain(F&& f) {
+        if constexpr (requires { Loader::get()->queueInMainThread(std::forward<F>(f)); })
+            Loader::get()->queueInMainThread(std::forward<F>(f));
+        else
+            queueInMainThread(std::forward<F>(f));
     }
 
-    void onOpenModMenu(CCObject*) { mm::ModMenuLayer::open(); }
-};
+    void pump() {
+        using clock = std::chrono::steady_clock;
+        static auto last = clock::now();
+        auto now = clock::now();
+        float dt = std::chrono::duration<float>(now - last).count();
+        last = now;
+        mm::frame(dt);
+        queueMain([] { pump(); }); // runs again next frame
+    }
+}
+
+$on_mod(Loaded) {
+    queueMain([] { pump(); });
+}
