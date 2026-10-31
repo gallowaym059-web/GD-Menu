@@ -1,6 +1,13 @@
 #pragma once
 #include "Fps.hpp"
 
+// SceneManager is not pulled in by Geode.hpp; its header location differs between SDK versions.
+#if __has_include(<Geode/ui/SceneManager.hpp>)
+#include <Geode/ui/SceneManager.hpp>
+#elif __has_include(<Geode/utils/SceneManager.hpp>)
+#include <Geode/utils/SceneManager.hpp>
+#endif
+
 namespace mm {
 
 inline int countNodes(CCNode* n) {
