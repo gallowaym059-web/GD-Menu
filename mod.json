@@ -1,0 +1,13 @@
+{
+  "geode": "5.11.2",
+  "gd": {
+    "android32": "2.2091",
+    "android64": "2.2091"
+  },
+  "version": "v2.2091.1-beta",
+  "id": "codenan.mobilemenu",
+  "name": "Mobile Window Menu",
+  "developer": "codenan",
+  "description": "Touch-first, draggable category windows with a Display tab (FPS control), stats overlay and 100+ settings.",
+  "settings": {}
+}
