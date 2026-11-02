@@ -34,7 +34,9 @@ jobs:
         with:
           # Geode 6 (GD 2.2091 support) is not the 'latest' release yet, so build against the main branch.
           sdk: nightly
-          configure-args: -DGEODE_BINDINGS_REPO_PATH=${{ runner.temp }}/bindings
+          # Second upstream bindings bug: GJGameLevel::GJGameLevel() ends up defined twice in
+          # libGeodeBindings.a, so the final link fails. The mod never uses it, so let the linker keep the first.
+          configure-args: -DGEODE_BINDINGS_REPO_PATH=${{ runner.temp }}/bindings -DCMAKE_SHARED_LINKER_FLAGS=-Wl,--allow-multiple-definition
           target: ${{ matrix.target }}
           combine: true
 
