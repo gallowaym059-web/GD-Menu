@@ -15,17 +15,26 @@ jobs:
         target: [Android32, Android64]
     steps:
       - uses: actions/checkout@v4
+
+      # geode-sdk/bindings main currently fails to compile for Android on GD 2.2091:
+      #   bindings/2.2091/inline/PlayerObject.cpp:35: use of undeclared identifier 'm_ringRelatedSet'
+      # This mod never touches PlayerObject, so we clone the bindings ourselves and comment out
+      # that one line. Once upstream is fixed this step does nothing harmful (the pattern won't match).
+      - name: Clone and patch Geode bindings
+        run: |
+          git clone --depth 1 https://github.com/geode-sdk/bindings "$RUNNER_TEMP/bindings"
+          F="$RUNNER_TEMP/bindings/bindings/2.2091/inline/PlayerObject.cpp"
+          grep -n "m_ringRelatedSet" "$F" || true
+          sed -i 's|^\(.*new (&m_ringRelatedSet).*\)$|// patched out: \1|' "$F"
+          grep -n "m_ringRelatedSet" "$F" || true
+          echo "GEODE_BINDINGS_REPO_PATH=$RUNNER_TEMP/bindings" >> "$GITHUB_ENV"
+
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
           # Geode 6 (GD 2.2091 support) is not the 'latest' release yet, so build against the main branch.
           sdk: nightly
-          # If the build fails inside GeodeBindings (not in src/), pin the bindings to an older
-          # commit from https://github.com/geode-sdk/bindings/commits/main and uncomment:
-          # bindings-ref: PASTE_COMMIT_HASH_HERE
-          # The log said "Skipping building Codegen": a prebuilt (possibly stale) codegen binary generated
-          # the bindings headers, which would explain the missing m_ringRelatedSet. Build it locally instead.
-          configure-args: -DSKIP_BUILDING_CODEGEN=OFF
+          configure-args: -DGEODE_BINDINGS_REPO_PATH=${{ runner.temp }}/bindings
           target: ${{ matrix.target }}
           combine: true
 
