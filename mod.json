@@ -1,9 +1,9 @@
 {
-  "geode": "5.11.2",
+  "geode": "6.0.0-alpha.1",
   "gd": {
-    "android": "*"
+    "android": "2.2091"
   },
-  "version": "v2.2091.1-beta",
+  "version": "v6.0.0-alpha.1",
   "id": "codenan.mobilemenu",
   "name": "Mobile Window Menu",
   "developer": "codenan",
