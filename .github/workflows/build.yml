@@ -23,6 +23,9 @@ jobs:
           # If the build fails inside GeodeBindings (not in src/), pin the bindings to an older
           # commit from https://github.com/geode-sdk/bindings/commits/main and uncomment:
           # bindings-ref: PASTE_COMMIT_HASH_HERE
+          # The log said "Skipping building Codegen": a prebuilt (possibly stale) codegen binary generated
+          # the bindings headers, which would explain the missing m_ringRelatedSet. Build it locally instead.
+          configure-args: -DSKIP_BUILDING_CODEGEN=OFF
           target: ${{ matrix.target }}
           combine: true
 
