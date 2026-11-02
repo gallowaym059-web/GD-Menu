@@ -18,6 +18,8 @@ jobs:
       - name: Build mod
         uses: geode-sdk/build-geode-mod@main
         with:
+          # Geode 6 (GD 2.2091 support) is not the 'latest' release yet, so build against the main branch.
+          sdk: nightly
           target: ${{ matrix.target }}
           combine: true
 
